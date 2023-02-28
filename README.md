@@ -13,7 +13,7 @@
 - JavaScript (Deno)
 - Java
 - Python
-- Golang
+- Golang  
 Клиентские реализации:  
 - JavaScript
 - Java
