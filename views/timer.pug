@@ -1,0 +1,28 @@
+doctype html
+head
+    title Timer Example
+body
+    h1 Timer
+    p#timer 00:00:00
+    button#startTimer(onclick="startTimer()") Start
+    button#stopTimer(onclick="stopTimer()") Stop
+    script(src='/socket.io/socket.io.js')
+    script.
+        let socket = io();
+        let timerElement = document.getElementById("timer");
+        socket.on('timer is playing', function(data) {
+            timerElement.innerHTML = data.hours + ":" + data.minutes + ":" + (data.seconds < 10 ? "0" : "") + data.seconds;
+        })
+
+        function startTimer() {
+            socket.emit('start timer')
+            document.querySelector('#startTimer').setAttribute('disabled', '')
+        }
+
+        function stopTimer() {
+            socket.emit('stop timer')
+            document.querySelector('#startTimer').removeAttribute('disabled')
+            timerElement.innerHTML = "00:00:00";
+        }
+
+        

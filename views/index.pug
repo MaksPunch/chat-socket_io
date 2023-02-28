@@ -10,13 +10,13 @@ body
                 span 
                 span 
                 ul#menu
-                    button.trigger Emoji
                     a(href='#') 
                         li timer
     ul#messages 
     form#form(action='')
         div#user Anonymus
         input#input(placeholder='Say Something...' autocomplete='off')
+        img#trigger(src='img/emojipicker.png')
         input#button(type='submit' value='Отправить')
      
     script(src='/socket.io/socket.io.js')
@@ -33,18 +33,15 @@ body
                 socket.emit('user login', username);
                 alert('Welcome back, ' + username + '!')
             }
-                
             else {
-                socket.emit('new user', username)
+                socket.emit('signup', username)
                 alert('Thank you for signing in, ' + username + '!')
             }
-                
             socket.emit('user connected', username)
         } else {
             socket.emit('user not logged in')
             alert('You are not authorized, you will be an Anonymus for this session')
         }
-
         socket.on('user logged in', (data) => {
             document.querySelector('#user').textContent = username
         })
@@ -52,7 +49,7 @@ body
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (input.value != "") {
-                socket.emit('messageFromClient', input.value, username);
+                socket.emit('messageFromClient', input.value);
                 input.value = '';
             }
         });
@@ -69,3 +66,5 @@ body
             messageList.appendChild(item)
             window.scrollTo(0, document.body.scrollHeight);
         });
+
+        socket.on('')

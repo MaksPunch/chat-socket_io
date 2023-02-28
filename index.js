@@ -22,50 +22,92 @@ app.get('/', (req, res) => {
     })
 })
 
-app.post('/login', (req, res) => {
-
+app.get('/timer', (req, res) => {
+    res.render('./timer');
 })
 
-io.on("connection",(client) => {
-    client.on('user login', username => {
-        console.log(`${username} came back!`);
-        client.username = username;
-    })
-
-    client.on('new user', username => {
-        console.log(`${username} just signed up!`)
-        
-        jf.readFile('users.json', (err, obj) => {
-            if (err) throw err;
-            let fileObj = obj;
-            fileObj.users.push({
-                nickname: username
-            })
-            jf.writeFile('users.json', fileObj, {spaces:2}, (err) => {if (err) throw err})
+function addUser(username) {
+    jf.readFile('users.json', async (err, obj) => {
+        if (err) throw err;
+        let fileObj = obj;
+        fileObj.users.push({
+            nickname: username
         })
-        client.username = username;
-        console.log(client.username)
+        jf.writeFile('users.json', fileObj, {spaces:2}, async (err) => {if (err) throw err})
     })
+}
 
-    client.on('user connected', (username) => {
-        client.username = username
-        io.emit('user logged in')
-    })
+let seconds = 0;
+let minutes = 0;
+let hours = 0;
+let intervalId;
+
+function updateTimer() {
+    seconds++;
+    if (seconds == 60) {
+        seconds = 0;
+        minutes++;
+        minutes = (minutes < 10 ? "0" : "") + minutes;
+    }
+    if (minutes == 60) {
+        minutes = 0;
+        hours++;
+        seconds = (seconds < 10 ? "0" : "") + seconds;
+        minutes = (minutes < 10 ? "0" : "") + minutes;
+        hours = (hours < 10 ? "0" : "") + hours;
+    }
+    io.emit('timer is playing', {
+        seconds: seconds,
+        minutes: minutes,
+        hours: hours
+    });
+}
+
+io.on("connection", (client) => {
 
     client.on('user not logged in', () => {
         console.log('user not authorized')
         client.username = 'Anonymus'
     })
 
-    client.on('messageFromClient', (msg, username) => {
-        console.log(client.username)
-        io.emit('messageFromServer', {message: msg, user: username});
+    client.on('messageFromClient', (msg) => {
+        io.emit('messageFromServer', {message: msg, user: client.username});
     });
 
     client.on('disconnect', () => {
-        console.log('New websocket disconnected');
+        console.log(`${client.username} disconnected`);
+        io.emit('user disconnected', client.username)
     });
 
+    client.on('user login', username => {
+        console.log(`${username} came back!`);
+        client.username = username;
+    })
+
+    client.on('signup', (username) => {
+        console.log(`${username} just signed up!`)
+        addUser(username);
+    })
+
+    client.on('user connected', username => {
+        client.username = username
+        io.emit('user logged in')
+    })
+    
+    client.on('start timer', () => {
+        seconds = (seconds < 10 ? "0" : "") + seconds;
+        minutes = (minutes < 10 ? "0" : "") + minutes;
+        hours = (hours < 10 ? "0" : "") + hours;
+        intervalId = setInterval(updateTimer, 1000);
+    })
+    
+    client.on('stop timer', () => {
+        clearInterval(intervalId)
+        milliseconds = 0;
+        seconds = 0;
+        minutes = 0;
+        hours = 0;
+    })
 })
 
 const port=process.env.PORT || 3000;
