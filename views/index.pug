@@ -1,0 +1,71 @@
+head 
+    title socket.io chat 
+    link(rel='stylesheet' href='style.css')
+    script(type='module' src='popup.js')
+body 
+    nav(role='navigation')
+            div#menuToggle
+                input(type='checkbox')
+                span
+                span 
+                span 
+                ul#menu
+                    button.trigger Emoji
+                    a(href='#') 
+                        li timer
+    ul#messages 
+    form#form(action='')
+        div#user Anonymus
+        input#input(placeholder='Say Something...' autocomplete='off')
+        input#button(type='submit' value='Отправить')
+     
+    script(src='/socket.io/socket.io.js')
+    script.
+        let socket = io();
+        let messages = document.getElementById('messages');
+        let form = document.getElementById('form');
+        let input = document.getElementById('input');
+        const username = window.prompt("Enter the username");
+        if (username) {
+            const users = !{JSON.stringify(users)};
+            const userFound = users.find(el => el.nickname === username);
+            if (userFound) {
+                socket.emit('user login', username);
+                alert('Welcome back, ' + username + '!')
+            }
+                
+            else {
+                socket.emit('new user', username)
+                alert('Thank you for signing in, ' + username + '!')
+            }
+                
+            socket.emit('user connected', username)
+        } else {
+            socket.emit('user not logged in')
+            alert('You are not authorized, you will be an Anonymus for this session')
+        }
+
+        socket.on('user logged in', (data) => {
+            document.querySelector('#user').textContent = username
+        })
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (input.value != "") {
+                socket.emit('messageFromClient', input.value, username);
+                input.value = '';
+            }
+        });
+
+        socket.on('messageFromServer', function (data) {
+            let messageList = document.querySelector('#messages')
+            let item = document.createElement('li')
+            let message = document.createElement('div');
+            let user = document.createElement('div')
+            message.textContent = data.message;
+            user.textContent = data.user;
+            item.appendChild(user);
+            item.appendChild(message);
+            messageList.appendChild(item)
+            window.scrollTo(0, document.body.scrollHeight);
+        });
