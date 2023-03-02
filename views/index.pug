@@ -10,13 +10,14 @@ body
                 span 
                 span 
                 ul#menu
-                    a(href='#') 
+                    a(href='/timer') 
                         li timer
     ul#messages 
     form#form(action='')
         div#user Anonymus
         input#input(placeholder='Say Something...' autocomplete='off')
-        img#trigger(src='img/emojipicker.png')
+        .trigger_container
+            img#trigger(src='img/emojipicker.png')
         input#button(type='submit' value='Отправить')
      
     script(src='/socket.io/socket.io.js')
@@ -66,5 +67,16 @@ body
             messageList.appendChild(item)
             window.scrollTo(0, document.body.scrollHeight);
         });
+
+        let trigger_container = document.querySelector('.trigger_container');
+        let trigger = document.querySelector('#trigger')
+        trigger_container.onmouseover = () => {
+            trigger.style.width = "35px";
+            trigger.style.height = "35px";
+        }
+        trigger_container.onmouseout = () => {
+            trigger.style.width = "40px";
+            trigger.style.height = "40px";
+        }
 
         socket.on('')

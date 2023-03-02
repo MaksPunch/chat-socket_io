@@ -9,20 +9,28 @@ body
     script(src='/socket.io/socket.io.js')
     script.
         let socket = io();
+        socket.emit('user on timer page')
+        socket.on('block start timer button', () => {
+            document.querySelector('#startTimer').setAttribute('disabled', '')
+        })
         let timerElement = document.getElementById("timer");
+        socket.on('receive latest data', (data) => {
+            timerElement.innerHTML = data.hours + ":" + data.minutes + ":" + (data.seconds < 10 ? "0" : "") + data.seconds;
+        })
         socket.on('timer is playing', function(data) {
             timerElement.innerHTML = data.hours + ":" + data.minutes + ":" + (data.seconds < 10 ? "0" : "") + data.seconds;
+        })
+        socket.on('timer stopped', function() {
+            document.querySelector('#startTimer').removeAttribute('disabled')
+            timerElement.innerHTML = "00:00:00";
         })
 
         function startTimer() {
             socket.emit('start timer')
-            document.querySelector('#startTimer').setAttribute('disabled', '')
         }
 
         function stopTimer() {
-            socket.emit('stop timer')
-            document.querySelector('#startTimer').removeAttribute('disabled')
-            timerElement.innerHTML = "00:00:00";
+            socket.emit('stop timer') 
         }
 
         

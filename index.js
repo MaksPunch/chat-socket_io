@@ -61,6 +61,7 @@ function updateTimer() {
         minutes: minutes,
         hours: hours
     });
+    
 }
 
 io.on("connection", (client) => {
@@ -93,12 +94,24 @@ io.on("connection", (client) => {
         client.username = username
         io.emit('user logged in')
     })
+
+    client.on('user on timer page', () => {
+        if (intervalId) {
+            io.emit('block start timer button')
+            io.emit('receive latest data', {
+                seconds: seconds,
+                minutes: minutes,
+                hours: hours
+            })
+        }
+    })
     
     client.on('start timer', () => {
         seconds = (seconds < 10 ? "0" : "") + seconds;
         minutes = (minutes < 10 ? "0" : "") + minutes;
         hours = (hours < 10 ? "0" : "") + hours;
         intervalId = setInterval(updateTimer, 1000);
+        io.emit('block start timer button')
     })
     
     client.on('stop timer', () => {
@@ -107,6 +120,7 @@ io.on("connection", (client) => {
         seconds = 0;
         minutes = 0;
         hours = 0;
+        io.emit('timer stopped')
     })
 })
 
