@@ -29,7 +29,7 @@
         });
 
         socket.on('messageFromServer', function (msg) {
-            var item = document.createElement('li');
+            let item = document.createElement('li');
             item.textContent = msg;
             messages.appendChild(item);
             window.scrollTo(0, document.body.scrollHeight);
