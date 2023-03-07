@@ -20,23 +20,34 @@ body
                             option room 2
                             option room 3
                         li#changeRoom change room
-    div#room_index room 1
+    div#room_index 
+        p#room room 1
+        p#room_users_counter 0
+        p Overall 
+        p#users_counter 0
+
                     
     ul#messages 
     form#form(action='')
         button(id='user') Anonymus
         input#input(placeholder='Say Something...' autocomplete='off')
+        input#upload_input(type='file' onchange="upload(this.files)" accept=".png, .jpg, .jpeg")
         .trigger_container
             img#trigger(src='img/emojipicker.png')
         input#button(type='submit' value='Отправить')
      
     script(src='/socket.io/socket.io.js')
     script.
+        let username = window.prompt("Enter the username");
         let socket = io();
         let messages = document.getElementById('messages');
         let form = document.getElementById('form');
         let input = document.getElementById('input');
-        let username = window.prompt("Enter the username");
+        let users_counter = document.querySelector("#users_counter");
+        let users = 0;
+        let room_users_counter = document.querySelector("#room_users_counter")
+        let room_users = 0;
+        const upload_msg = {};
         if (username) {
             const users = !{JSON.stringify(users)};
             const userFound = users.find(el => el.nickname === username);
@@ -55,12 +66,22 @@ body
         }
         socket.emit('user connected', username)
         document.getElementById('user').textContent = username;
+        
+        socket.on('user disconnected of chat', (data) => {
+            users_counter.textContent = data.counter;
+        })
+
+        socket.on('user logged in in chat', (data) => {
+            room_users_counter.textContent = data.rooms_data[data.room];
+            users_counter.textContent = data.counter;
+        });
+
         socket.on('user logged in', (data) => {
-            let item = document.createElement('p')
-            item.style.color = '#fff'
-            item.textContent = `${data.name} connected to ${data.room}`
-            item.style.textAlign = 'center'
-            messages.append(item)
+            let item = document.createElement('p');
+            item.style.color = '#fff';
+            item.textContent = `${data.name} connected to ${data.room}`;
+            item.style.textAlign = 'center';
+            messages.append(item);
         })
 
         socket.on('user disconnected', (data) => {
@@ -71,19 +92,40 @@ body
             messages.append(item)
         })
 
+        socket.on('upload end', (data) => {
+            upload_msg.file = data.filepath
+        })
+
         form.addEventListener('submit', function (e) {
+            console.log(upload_msg)
             e.preventDefault();
-            if (input.value != "") {
-                socket.emit('messageFromClient', input.value);
+            if (upload_msg.file) {
+                upload_msg.msg = input.value
+                socket.emit('messageFromClient', upload_msg)
+                upload_msg.file = '';
+                upload_msg.msg = '';
+                document.querySelector('#upload_input').value = '';
                 input.value = '';
             }
+            else if (input.value != "" && !upload_msg.file) {
+                socket.emit('messageFromClient', {msg: input.value});
+                input.value = '';
+            } 
         });
 
         socket.on('messageFromServer', function (data) {
             let item = document.createElement('li')
             let message = document.createElement('div');
             let user = document.createElement('div')
-            message.textContent = data.message;
+            let message_text = document.createElement('p');
+            message_text.textContent = data.message;
+            message.append(message_text);
+            if (data.file) {
+                console.log(data.file)
+                let img = document.createElement('img')
+                img.src = data.file;
+                message.append(img);
+            }
             user.textContent = data.user;
             item.appendChild(user);
             item.appendChild(message);
@@ -132,12 +174,14 @@ body
         })
 
         socket.on('room changed', (data) => {
-            document.querySelector('#room_index').textContent = data.room;
+            document.querySelector('#room').textContent = data.room;
             let item = document.createElement('p')
             item.style.color = '#fff'
             item.textContent = `${data.name} connected to ${data.room}`
             item.style.textAlign = 'center'
             messages.append(item)
+
+            room_users_counter.textContent = data.rooms_data[data.room];
         })
 
         socket.on('room left', (data) => {
@@ -146,4 +190,13 @@ body
             item.textContent = `${data.name} left the ${data.room}`
             item.style.textAlign = 'center'
             messages.append(item)
+
+            room_users_counter.textContent = data.rooms_data[data.room];
         })
+
+        function upload(files) {
+            console.log(files[0].name)
+            socket.emit("upload", {file: files[0], filename: files[0].name}, (status) => {
+                console.log(status);
+            });
+        }

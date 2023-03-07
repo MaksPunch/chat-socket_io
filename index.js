@@ -6,9 +6,20 @@ const jf = require("jsonfile");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketio(server);
+const fs = require("fs");
+const {Server} = require('socket.io')
+
+const io = new Server(server, {
+  maxHttpBufferSize: 1e7
+})
 
 const users = jf.readFileSync("users.json");
+let users_counter = 0;
+const rooms = {
+  "room 1": 0,
+  "room 2": 0,
+  "room 3": 0
+}
 
 app.set("view engine", "pug");
 
@@ -80,12 +91,17 @@ function updateTimer() {
 
 io.on("connection", (client) => {
   client.on("change room", (room) => {
-    io.sockets.in(client.room).emit("room left", { name: client.username, room: client.room });
+    rooms[client.room]--;
+    console.log(rooms, "before")
+    io.sockets.in(client.room).emit("room left", { name: client.username, room: client.room, room: client.room, rooms_data: rooms  });
     client.leave(client.room);
+
     client.join(room);
     client.room = room;
-    console.log(room, "room");
-    io.sockets.in(client.room).emit("room changed", { name: client.username, room: client.room });
+    rooms[client.room]++;
+    console.log(rooms, "after")
+
+    io.sockets.in(client.room).emit("room changed", { name: client.username, room: client.room, rooms_data: rooms });
   });
 
   client.on("user not logged in", () => {
@@ -94,12 +110,18 @@ io.on("connection", (client) => {
   });
 
   client.on("messageFromClient", (msg) => {
-    console.log("client room", client.room, msg);
-    io.sockets.in(client.room).emit("messageFromServer", { message: msg, user: client.username });
+    console.log("client room", client.username, msg);
+    io.sockets.in(client.room).emit("messageFromServer", { message: msg.msg, user: client.username, file: msg.file });
   });
 
   client.on("disconnect", () => {
+    if (client.username)  {
+      users_counter--;
+      rooms[client.room]--
+    }
+    console.log(rooms)
     console.log(`${client.username} disconnected`);
+    io.emit('user disconnected of chat', {counter: users_counter, room: client.room, rooms_data: rooms});
     io.to(client.room).emit("user disconnected", client.username);
   });
 
@@ -113,9 +135,13 @@ io.on("connection", (client) => {
   });
 
   client.on("user connected", (username) => {
+    users_counter++;
     client.join("room 1");
     client.room = "room 1";
+    rooms[client.room]++;
     client.username = username;
+    console.log(rooms, users_counter, client.room, rooms[client.room])
+    io.sockets.emit('user logged in in chat', {counter: users_counter, room: client.room, rooms_data: rooms})
     io.to(client.room).emit("user logged in", { name: client.username, room: client.room });
   });
 
@@ -151,6 +177,16 @@ io.on("connection", (client) => {
     minutes = 0;
     hours = 0;
     io.emit("timer stopped");
+  });
+
+  client.on("upload", (file, callback) => {
+    console.log(file.filename); // <Buffer 25 50 44 ...>
+
+    // save the content to the disk, for example
+    fs.writeFile("./public/img/"+file.filename, file.file, (err) => {
+      callback({ message: err ? "failure: " + err : "success" });
+      io.sockets.to(client.room).emit('upload end', {status: true, filepath: "img/"+file.filename})
+    });
   });
 });
 
