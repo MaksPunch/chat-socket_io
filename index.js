@@ -183,9 +183,9 @@ io.on("connection", (client) => {
     console.log(file.filename); // <Buffer 25 50 44 ...>
 
     // save the content to the disk, for example
-    fs.writeFile("./public/img/"+file.filename, file.file, (err) => {
+    fs.writeFile("./public/upload_img/"+file.filename, file.file, (err) => {
       callback({ message: err ? "failure: " + err : "success" });
-      io.sockets.to(client.room).emit('upload end', {status: true, filepath: "img/"+file.filename})
+      io.sockets.to(client.room).emit('upload end', {status: true, filepath: "upload_img/"+file.filename})
     });
   });
 });
